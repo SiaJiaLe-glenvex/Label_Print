@@ -1,0 +1,21 @@
+{
+  "locale": ["en"],
+  "service": "CREATOR",
+  "modules": {
+    "widgets": [
+      {
+        "name": "Label Print Widget",
+        "location": "widget",
+        "url": "/widget.html"
+      }
+    ]
+  },
+  "cspDomains": {
+    "connect-src": [],
+    "img-src": [],
+    "frame-src": [],
+    "script-src": [],
+    "style-src": []
+  },
+  "config": []
+}
