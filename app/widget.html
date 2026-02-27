@@ -1,0 +1,652 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Label Print</title>
+
+  <script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+
+  <style>
+    body { font-family: Lato, Arimo, sans-serif; margin:0; padding:0; }
+
+    @page { size: 100mm 50mm; margin: 0; }
+
+    @media print {
+      html, body { width:100mm; height:50mm; margin:0 !important; padding:0 !important; }
+      .no-print, #logBox { display:none !important; }
+      #labels-container { margin:0; padding:0; }
+      .label { break-inside: avoid; page-break-inside: avoid; break-after: page; page-break-after: always; }
+      .label:last-child { break-after: auto; page-break-after: auto; }
+    }
+
+    .label {
+      width: 100mm;
+      height: 50mm;
+      box-sizing: border-box;
+      padding: 1.5mm 4mm 1.5mm 4mm;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Logo */
+    .logoBox {
+      position: absolute;
+      top: 4mm;
+      right: 4mm;
+      width: 14mm;
+      height: 10mm;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .logoBox img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+      display: block;
+      border: none;
+      outline: none;
+      transform: scale(1.6);
+    }
+
+    .label > *:not(.logoBox) {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hotel-name {
+      font-size: 26pt;
+      font-weight: 700;
+      line-height: 1.0;
+      margin: 0;
+      padding-right: 22mm;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .info {
+      display: grid;
+      grid-template-columns: 14mm 2mm 1fr;
+      row-gap: 0.4mm; 
+      column-gap: 1.5mm;
+      font-size: 11pt;
+      line-height: 1.1; 
+      flex-shrink: 0;
+      align-content: start;
+      margin-top: 2mm; 
+    }
+    .info .c { text-align: center; }
+
+    /* ZONE 3: Mid-section */
+    .mid-section {
+      flex-shrink: 0;
+      margin-top: -1.5mm;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end; /* Aligns contents of mid-section to the right */
+    }
+
+    .index-row {
+      font-size: 24pt; 
+      font-weight: 400; 
+      line-height: 0.7; 
+      margin-bottom: 1.2mm;
+      text-align: right;
+      margin-right: -1pt; /* Optical adjustment for font glyph spacing */
+    }
+
+    .divider {
+      border: none;
+      border-top: 0.8mm solid #000;
+      margin: 0;
+      width: 100%; /* Spans full width of label padding */
+    }
+
+    /* ZONE 4: Item + qty */
+    .bottom-area {
+      margin-top: auto; 
+      display: flex;
+      justify-content: space-between;
+      align-items: center; 
+      flex: 1;
+      width: 100%;
+    }
+
+    .item-name {
+      flex: 1;
+      text-align: left;
+      font-weight: 700;
+      line-height: 1.0;
+      white-space: normal;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      padding-right: 2mm;
+    }
+
+    .qty {
+      width: 25mm; /* Sufficient width for 3 digits */
+      text-align: right;
+      font-size: 42pt; 
+      font-weight: 400; 
+      line-height: 0.9;
+      flex-shrink: 0;
+      margin-right: -2pt; /* Optical adjustment to align perfectly with divider edge */
+    }
+
+    /* UI controls */
+    .no-print { padding: 10px; font-size: 12px; }
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    button { padding: 6px 10px; cursor: pointer; }
+    #logBox {
+      white-space: pre-wrap;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+      max-height: 120px;
+      overflow: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="no-print">
+    <div id="statusText">Preparing labels…</div>
+    <div class="toolbar" style="margin-top:8px;">
+      <button id="btnLoad" type="button">Reload Records</button>
+      <button id="btnPrint" type="button">Print Now</button>
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input id="chkAutoPrint" type="checkbox" checked />
+        Auto-print after load
+      </label>
+    </div>
+  </div>
+
+  <div id="labels-container"></div>
+  <pre id="logBox"></pre>
+
+  <script src="./widget.js"></script>
+</body>
+</html>
+<!-- 
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Print Label Form</title>
+  <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --border: #e0ddd6;
+      --border-focus: #2d2d2d;
+      --text: #1a1a1a;
+      --text-muted: #6b6b6b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+      font-size: 14px;
+    }
+
+    .form-card {
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .form-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .status-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #f0f9ff;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    .status-badge.error { background: #fef2f2; color: var(--danger); border-color: #fecaca; }
+    .status-badge.success { background: #f0fdf4; color: var(--success); border-color: #bbf7d0; }
+
+    .form-body { padding: 20px 24px; }
+
+    /* Two-column grid layout matching Zoho style */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 28px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group.full-width { grid-column: 1 / -1; }
+
+    .section-divider {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0 2px;
+    }
+
+    .section-divider span {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    label .req { color: var(--danger); font-size: 11px; }
+
+    input, select {
+      width: 100%;
+      height: 36px;
+      padding: 0 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+      cursor: pointer;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(45,45,45,0.06);
+    }
+
+    input:disabled, select:disabled {
+      background: #f9f9f7;
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    input[type="date"] { cursor: pointer; }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Remark field hidden by default */
+    #group-Remark { display: none; }
+
+    /* Totals row */
+    .totals-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    .total-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .total-input-wrap {
+      position: relative;
+    }
+
+    .total-input-wrap input {
+      padding-left: 11px;
+    }
+
+    .total-label-pill {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+    .pill-clean { background: #dcfce7; color: #15803d; }
+    .pill-stain { background: #fef9c3; color: #a16207; }
+    .pill-torn  { background: #fee2e2; color: #b91c1c; }
+
+    /* Form actions */
+    .form-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      height: 36px;
+      padding: 0 18px;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, opacity 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+
+    /* Loading overlay */
+    .loader-wrap {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(245,244,240,0.8);
+      backdrop-filter: blur(2px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .loader-wrap.active { display: flex; }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Toast notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 9999;
+    }
+
+    .toast {
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      animation: slideIn 0.2s ease;
+      max-width: 300px;
+    }
+
+    .toast.error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .toast.info { background: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; }
+    .toast.success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Validation error state */
+    .form-group.has-error input,
+    .form-group.has-error select {
+      border-color: var(--danger);
+    }
+
+    .error-msg {
+      font-size: 11px;
+      color: var(--danger);
+      display: none;
+    }
+
+    .form-group.has-error .error-msg { display: block; }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .totals-row { grid-template-columns: 1fr; }
+      .form-group.full-width { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="loader-wrap" id="loaderWrap">
+  <div class="spinner"></div>
+  <div class="loader-text" id="loaderText">Loading data…</div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="form-card">
+  <div class="form-header">
+    <h1>Print Label</h1>
+    <span class="status-badge" id="statusBadge">Initialising…</span>
+  </div>
+
+  <div class="form-body">
+    <form id="labelForm" novalidate>
+      <div class="form-grid">
+
+        Row 1 -->
+        <!-- <div class="form-group" id="group-Hotel_Name">
+          <label>Hotel Name</label>
+          <select id="Hotel_Name" name="Hotel_Name">
+            <option value="">-Select-</option>
+          </select>
+        </div> -->
+
+        <!-- <div class="form-group" id="group-Laundry_Type">
+          <label>Laundry Type <span class="req">*</span></label>
+          <select id="Laundry_Type" name="Laundry_Type" disabled>
+            <option value="">-Select-</option>
+          </select>
+          <span class="error-msg">Please select a laundry type</span>
+        </div>
+
+        Row 2
+        <div class="form-group" id="group-Order_Number">
+          <label>Order Number <span class="req">*</span></label>
+          <input type="text" id="Order_Number" name="Order_Number" placeholder="e.g. ORD-001" />
+          <span class="error-msg">Order number is required</span>
+        </div>
+
+        <div class="form-group" id="group-Wash_Type">
+          <label>Wash Type <span class="req">*</span></label>
+          <select id="Wash_Type" name="Wash_Type">
+            <option value="">-Select-</option>
+            <option>Normal Wash</option>
+            <option>Pressing Only</option>
+            <option>Dry Cleaning</option>
+            <option>Rewash (Free)</option>
+            <option>Rewash (Paid)</option>
+          </select>
+          <span class="error-msg">Please select a wash type</span>
+        </div>
+
+        Row 3
+        <div class="form-group" id="group-Date_field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" id="Date_field" name="Date_field" />
+          <span class="error-msg">Date is required</span>
+        </div>
+
+        <div class="form-group" id="group-Service_Type">
+          <label>Service Type <span class="req">*</span></label>
+          <select id="Service_Type" name="Service_Type">
+            <option value="">-Select-</option>
+            <option>Prewash</option>
+            <option>Special Treatment</option>
+            <option>Express Service</option>
+          </select>
+          <span class="error-msg">Please select a service type</span>
+        </div>
+
+        Item Information section
+        <div class="section-divider">
+          <span>Item Information</span>
+        </div>
+
+        Row 4
+        <div class="form-group" id="group-Laundry_Item">
+          <label>Laundry Item <span class="req">*</span></label>
+          <select id="Laundry_Item" name="Laundry_Item" disabled>
+            <option value="">-Select-</option>
+          </select>
+          <span class="error-msg">Please select a laundry item</span>
+        </div>
+
+        <div class="form-group" id="group-Pack_Size">
+          <label>Pack Size <span class="req">*</span></label>
+          <input type="number" id="Pack_Size" name="Pack_Size" placeholder="e.g. 10" min="1" />
+          <span class="error-msg">Pack size must be greater than 0</span>
+        </div>
+
+        Remark (shown only when Others)
+        <div class="form-group full-width" id="group-Remark">
+          <label>Remark (Custom Item Name)</label>
+          <input type="text" id="Remark" name="Remark" placeholder="Enter custom item name…" />
+        </div>
+
+        Totals
+        <div class="section-divider">
+          <span>Quantities</span>
+        </div>
+
+        <div class="totals-row">
+          <div class="total-group">
+            <label>Clean Total</label>
+            <div class="total-input-wrap">
+              <input type="number" id="Clean_Total" name="Clean_Total" placeholder="0" min="0" />
+              <span class="total-label-pill pill-clean">Clean</span>
+            </div>
+          </div>
+          <div class="total-group">
+            <label>Stain Total</label>
+            <div class="total-input-wrap">
+              <input type="number" id="Stain_Total" name="Stain_Total" placeholder="0" min="0" />
+              <span class="total-label-pill pill-stain">Stain</span>
+            </div>
+          </div>
+          <div class="total-group">
+            <label>Torn Total</label>
+            <div class="total-input-wrap">
+              <input type="number" id="Torn_Total" name="Torn_Total" placeholder="0" min="0" />
+              <span class="total-label-pill pill-torn">Torn</span>
+            </div>
+          </div>
+        </div>
+
+      </div> /form-grid -->
+    <!-- </form>
+  </div>
+
+  <div class="form-footer">
+    <button class="btn btn-primary" id="btnPrint" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print
+    </button>
+    <button class="btn btn-ghost" id="btnReset" type="button">Reset</button>
+  </div>
+</div>
+
+<script src="./widget.js"></script>
+</body>
+</html> --> 
